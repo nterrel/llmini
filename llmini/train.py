@@ -6,7 +6,7 @@ from llmini.data import load_char_data
 from llmini.model import TinyGPT
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-device = "cpu"  # GTX 780 isn't helpful here; CPU is fine
+device = "cpu"
 block_size = 128
 batch_size = 64
 vocab_size, get_batch, decode = load_char_data(
@@ -16,10 +16,10 @@ model = TinyGPT(vocab_size, block_size=block_size, n_layer=4,
                 n_head=4, n_embd=128, dropout=0.1).to(device)
 optimizer = torch.optim.AdamW(
     model.parameters(), lr=3e-4, betas=(0.9, 0.95), weight_decay=0.1)
-scheduler = CosineAnnealingLR(optimizer, T_max=steps)
 
 steps = 3000  # ~a few minutes on a desktop CPU
 eval_every = 200
+scheduler = CosineAnnealingLR(optimizer, T_max=steps)
 
 
 def estimate_loss(iters=50):

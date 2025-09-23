@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite it as follows:"
+authors:
+  - family-names: Terrel
+    given-names: Nick
+title: "llmini: A Tiny LLM Implementation"
+version: 1.0.0
+doi: 10.1234/llmini.2025
+url: https://github.com/nterrel/llmini
+date-released: 2025-09-23
