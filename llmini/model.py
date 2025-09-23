@@ -13,13 +13,17 @@ class CausalSelfAttention(nn.Module):
         self.query = nn.Linear(n_embd, n_embd, bias=False)
         self.value = nn.Linear(n_embd, n_embd, bias=False)
         self.proj = nn.Linear(n_embd, n_embd)
-        self.register_buffer("mask", torch.tril(torch.ones(block_size, block_size)).unsqueeze(0).unsqueeze(0))
+        self.register_buffer("mask", torch.tril(torch.ones(
+            block_size, block_size)).unsqueeze(0).unsqueeze(0))
 
     def forward(self, x):
         B, T, C = x.size()
-        k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)   # (B, nh, T, hs)
-        q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
-        v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+        k = self.key(x).view(B, T, self.n_head, C //
+                             self.n_head).transpose(1, 2)   # (B, nh, T, hs)
+        q = self.query(x).view(B, T, self.n_head, C //
+                               self.n_head).transpose(1, 2)
+        v = self.value(x).view(B, T, self.n_head, C //
+                               self.n_head).transpose(1, 2)
         att = (q @ k.transpose(-2, -1)) / math.sqrt(k.size(-1))
         att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float('-inf'))
         att = torch.softmax(att, dim=-1)
@@ -54,7 +58,8 @@ class TinyGPT(nn.Module):
         self.tok_emb = nn.Embedding(vocab_size, n_embd)
         self.pos_emb = nn.Embedding(block_size, n_embd)
         self.drop = nn.Dropout(dropout)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
+        self.blocks = nn.Sequential(
+            *[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd)
         self.head = nn.Linear(n_embd, vocab_size, bias=False)
 
@@ -62,7 +67,7 @@ class TinyGPT(nn.Module):
 
     def _init_weights(self, m):
         if isinstance(m, (nn.Linear, nn.Embedding)):
-            nn.init.normal_(m.weight, mean=0.0, std=0.02)
+            nn.init.xavier_uniform_(m.weight)  # Use Xavier initialization
         if isinstance(m, nn.Linear) and m.bias is not None:
             nn.init.zeros_(m.bias)
 
@@ -76,7 +81,8 @@ class TinyGPT(nn.Module):
         logits = self.head(x)
         loss = None
         if targets is not None:
-            loss = torch.nn.functional.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+            loss = torch.nn.functional.cross_entropy(
+                logits.view(-1, logits.size(-1)), targets.view(-1))
         return logits, loss
 
     @torch.no_grad()

@@ -12,8 +12,7 @@ model = TinyGPT(vocab_size=83, block_size=128, n_layer=4,
                 n_head=4, n_embd=128, dropout=0.1)
 
 # Load the checkpoint
-ckpt = torch.load("/Users/nickterrel/llmini/tinygpt_char.pt",
-                  map_location="cpu")
+ckpt = torch.load("checkpoints/tinygpt_char.pt", map_location="cpu")
 state_dict = ckpt["model"]
 
 # Expand tok_emb weights
