@@ -8,7 +8,7 @@ from llmini.model import TinyGPT
 device = "cpu"
 block_size = 256  # was 128
 batch_size = 64
-vocab_size, get_batch, decode = load_char_data(
+vocab_size, get_batch, decode, _, _ = load_char_data(
     block_size=block_size, device=device)
 
 steps = 20000  # was 3000; ~6–7x more learning
@@ -34,21 +34,23 @@ scheduler = torch.optim.lr_scheduler.LambdaLR(
         1.0,
         (t + 1) / warmup
     ) if t < warmup else (
-        min_lr / lr + (1 - min_lr / lr) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, steps - warmup)))
+        min_lr / lr + (1 - min_lr / lr) * 0.5 * (1 +
+                                                 math.cos(math.pi * (t - warmup) / max(1, steps - warmup)))
     )
 )
 
 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
 
-def estimate_loss(iters=50):
+def estimate_loss(iters=50, test_mode=False):
     model.eval()
     outs = {}
     with torch.no_grad():
         for split in ["train", "val"]:
             los = 0.0
             for _ in range(iters):
-                xb, yb = get_batch(split, batch_size)
+                # Use smaller batch size in test mode
+                xb, yb = get_batch(split, batch_size if not test_mode else 8)
                 _, loss = model(xb, yb)
                 los += loss.item()
             outs[split] = los / iters
