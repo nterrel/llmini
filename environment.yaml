@@ -1,0 +1,12 @@
+name: llmini
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python>=3.7
+  - pip
+  - pip:
+      - torch>=1.9.0
+      - numpy
+      - tqdm
+      - pytest
