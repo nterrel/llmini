@@ -4,4 +4,7 @@
 __pycache__/
 llmini.egg-info/
 
+# File types
+*.out
+*.log
 

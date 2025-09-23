@@ -58,21 +58,22 @@ def estimate_loss(iters=50, test_mode=False):
     return outs
 
 
-for step in trange(steps):
-    xb, yb = get_batch("train", batch_size)
-    _, loss = model(xb, yb)
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-    optimizer.step()
-    scheduler.step()
+if __name__ == "__main__":
+    for step in trange(steps):
+        xb, yb = get_batch("train", batch_size)
+        _, loss = model(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        optimizer.step()
+        scheduler.step()
 
-    if (step + 1) % 1000 == 0:
-        losses = estimate_loss(50)
-        print(
-            f"step {step+1}: train {losses['train']:.3f} | val {losses['val']:.3f} | lr {scheduler.get_last_lr()[0]:.2e}")
+        if (step + 1) % 1000 == 0:
+            losses = estimate_loss(50)
+            print(
+                f"step {step+1}: train {losses['train']:.3f} | val {losses['val']:.3f} | lr {scheduler.get_last_lr()[0]:.2e}")
 
-torch.save({"model": model.state_dict(),
-            "config": {"vocab_size": vocab_size, "block_size": block_size}},
-           "checkpoints/tinygpt_char.pt")
-print("Saved tinygpt_char.pt")
+    torch.save({"model": model.state_dict(),
+                "config": {"vocab_size": vocab_size, "block_size": block_size}},
+               "checkpoints/tinygpt_char.pt")
+    print("Saved tinygpt_char.pt")
