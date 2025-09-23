@@ -6,7 +6,7 @@ import torch
 BLOCK_SIZE = 128  # Centralized block size configuration
 
 
-def load_char_data(path="llmini/data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
+def load_char_data(path="/Users/nickterrel/llmini/data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
     text = Path(path).read_text(encoding="utf-8")
     chars = sorted(list(set(text)))
     stoi = {ch: i for i, ch in enumerate(chars)}
@@ -16,7 +16,8 @@ def load_char_data(path="llmini/data/tinyshakespeare.txt", block_size=BLOCK_SIZE
         return [stoi[c] for c in s]
 
     def decode(xs):
-        return "".join([itos[x] for x in xs])
+        # Replace invalid tokens with '?'
+        return "".join([itos[x] if x in itos else "?" for x in xs])
 
     data = np.array(encode(text), dtype=np.int64)
     n = int(len(data) * split)
@@ -32,4 +33,4 @@ def load_char_data(path="llmini/data/tinyshakespeare.txt", block_size=BLOCK_SIZE
                 torch.from_numpy(y).to(device))
 
     vocab_size = len(chars)
-    return vocab_size, get_batch, decode
+    return vocab_size, get_batch, decode, stoi, itos

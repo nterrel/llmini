@@ -83,11 +83,16 @@ class TinyGPT(nn.Module):
         return logits, loss
 
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens):
+    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.block_size:]
             logits, _ = self(idx_cond)
-            logits = logits[:, -1, :]
+            logits = logits[:, -1, :] / temperature
+            if top_k is not None:
+                k = min(top_k, logits.size(-1))
+                vals, idxs = torch.topk(logits, k)
+                mask = torch.full_like(logits, float('-inf'))
+                logits = mask.scatter(1, idxs, vals)
             probs = torch.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, next_id), dim=1)

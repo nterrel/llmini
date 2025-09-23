@@ -5,7 +5,11 @@ from llmini.model import TinyGPT
 import torch.nn as nn
 
 # Load vocabulary and mappings
-vocab_size, stoi, decode = load_char_data()
+vocab_size, get_batch, decode, stoi, itos = load_char_data()
+
+# Debugging: Print vocab_size and itos size
+print(f"Model vocab_size: {vocab_size}")
+print(f"itos size: {len(itos)}")
 
 # Initialize the model
 model = TinyGPT(vocab_size=83, block_size=128, n_layer=4,
@@ -38,6 +42,7 @@ prompt = "ROMEO:"
 ids = torch.tensor([[stoi[c] for c in prompt]])  # Use stoi for encoding
 # better: map through your stoi (left as exercise)
 with torch.no_grad():
-    out = model.generate(ids, max_new_tokens=500)[0].tolist()
+    # Generate text with temperature and top-k sampling
+    out = model.generate(ids, max_new_tokens=600, temperature=0.9, top_k=50)
 
 print(decode(out))  # Use decode for decoding

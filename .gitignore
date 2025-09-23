@@ -2,6 +2,6 @@
 .vscode/
 .git/
 __pycache__/
-
+llmini.egg-info/
 
 
