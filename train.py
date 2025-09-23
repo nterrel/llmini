@@ -1,5 +1,6 @@
 # train.py
-import torch, math
+import torch
+import math
 from tqdm import trange
 from data import load_char_data
 from model import TinyGPT
@@ -15,6 +16,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), we
 steps = 3000  # ~a few minutes on a desktop CPU
 eval_every = 200
 
+
 def estimate_loss(iters=50):
     model.eval()
     outs = {}
@@ -25,9 +27,10 @@ def estimate_loss(iters=50):
                 xb, yb = get_batch(split, batch_size)
                 _, loss = model(xb, yb)
                 los += loss.item()
-            outs[split] = los/iters
+            outs[split] = los / iters
     model.train()
     return outs
+
 
 for step in trange(steps):
     xb, yb = get_batch("train", batch_size)
@@ -37,7 +40,7 @@ for step in trange(steps):
     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
 
-    if (step+1) % eval_every == 0:
+    if (step + 1) % eval_every == 0:
         losses = estimate_loss(20)
         print(f"step {step+1}: train {losses['train']:.3f} | val {losses['val']:.3f}")
 

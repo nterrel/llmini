@@ -1,5 +1,7 @@
 # User files
 .vscode/
 .git/
+__pycache__/
+
 
 
