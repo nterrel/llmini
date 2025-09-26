@@ -5,6 +5,7 @@ from tqdm import trange
 from llmini.data import load_char_data
 from llmini.model import TinyGPT
 import os
+import requests
 
 device = "cpu"
 block_size = 256  # was 128
@@ -37,9 +38,7 @@ scheduler = torch.optim.lr_scheduler.LambdaLR(
         1.0,
         (t + 1) / warmup
     ) if t < warmup else (
-        min_lr / lr + (1 - min_lr / lr) * 0.5 * (1 +
-                                                 math.cos(math.pi * (t - warmup) / max(1, steps - warmup)))
-    )
+        min_lr / lr + (1 - min_lr / lr) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, steps - warmup))))
 )
 
 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -60,6 +59,24 @@ def estimate_loss(iters=25, test_mode=False):  # Reduced iterations for faster e
     model.train()
     return outs
 
+
+def download_tinyshakespeare():
+    url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+    target_path = "data/tinyshakespeare.txt"
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+
+    print("Downloading tinyshakespeare.txt...")
+    response = requests.get(url)
+    response.raise_for_status()
+
+    with open(target_path, "wb") as f:
+        f.write(response.content)
+    print("Download complete.")
+
+
+# Check if tinyshakespeare.txt exists, if not, download it
+if not os.path.exists("data/tinyshakespeare.txt"):
+    download_tinyshakespeare()
 
 if __name__ == "__main__":
     # Check if a checkpoint exists

@@ -21,16 +21,18 @@ def load_char_data(path="/Users/nickterrel/llmini/data/tinyshakespeare.txt", blo
 
     data = np.array(encode(text), dtype=np.int64)
     n = int(len(data) * split)
+    global train_data, val_data
     train_data, val_data = data[:n], data[n:]
-
-    def get_batch(split="train", batch_size=64):
-        source = train_data if split == "train" else val_data
-        ix = np.random.randint(
-            0, len(source) - block_size - 1, size=(batch_size,))
-        x = np.stack([source[i:i + block_size] for i in ix])
-        y = np.stack([source[i + 1:i + block_size + 1] for i in ix])
-        return (torch.from_numpy(x).to(device),
-                torch.from_numpy(y).to(device))
 
     vocab_size = len(chars)
     return vocab_size, get_batch, decode, stoi, itos
+
+
+def get_batch(split="train", batch_size=64, device="cpu"):
+    source = train_data if split == "train" else val_data
+    ix = np.random.randint(
+        0, len(source) - BLOCK_SIZE - 1, size=(batch_size,))
+    x = np.stack([source[i:i + BLOCK_SIZE] for i in ix])
+    y = np.stack([source[i + 1:i + BLOCK_SIZE + 1] for i in ix])
+    return (torch.from_numpy(x).to(device),
+            torch.from_numpy(y).to(device))
