@@ -4,6 +4,7 @@ import math
 from tqdm import trange
 from llmini.data import load_char_data
 from llmini.model import TinyGPT
+import os
 
 device = "cpu"
 block_size = 256  # was 128
@@ -11,15 +12,15 @@ batch_size = 64
 vocab_size, get_batch, decode, _, _ = load_char_data(
     block_size=block_size, device=device)
 
-steps = 20000  # was 3000; ~6–7x more learning
+steps = 5000  # Reduced from 20000 to speed up training
 lr = 3e-4  # keep for now
 
 model = TinyGPT(
     vocab_size,
     block_size=block_size,
-    n_layer=6,  # was 4
-    n_head=8,  # was 4
-    n_embd=256,  # was 128
+    n_layer=6,  # Keeping model complexity
+    n_head=8,
+    n_embd=256,
     dropout=0.0  # tiny datasets do better with little/no dropout
 ).to(device)
 
@@ -28,6 +29,8 @@ optimizer = torch.optim.AdamW(
 
 warmup = 200
 min_lr = lr * 0.1
+patience = 10  # Define patience for early stopping
+
 scheduler = torch.optim.lr_scheduler.LambdaLR(
     optimizer,
     lr_lambda=lambda t: min(
@@ -42,7 +45,7 @@ scheduler = torch.optim.lr_scheduler.LambdaLR(
 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
 
-def estimate_loss(iters=50, test_mode=False):
+def estimate_loss(iters=25, test_mode=False):  # Reduced iterations for faster evaluation
     model.eval()
     outs = {}
     with torch.no_grad():
@@ -59,7 +62,24 @@ def estimate_loss(iters=50, test_mode=False):
 
 
 if __name__ == "__main__":
-    for step in trange(steps):
+    # Check if a checkpoint exists
+    checkpoint_path = "checkpoints/tinygpt_char.pt"
+    start_step = 0
+    best_val_loss = float('inf')
+    no_improve_steps = 0
+
+    if os.path.exists(checkpoint_path):
+        print("Loading checkpoint...")
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint["model"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        scheduler.load_state_dict(checkpoint["scheduler"])
+        start_step = checkpoint["step"]
+        best_val_loss = checkpoint["best_val_loss"]
+        no_improve_steps = checkpoint["no_improve_steps"]
+        print(f"Resuming training from step {start_step}")
+
+    for step in trange(start_step, steps):
         xb, yb = get_batch("train", batch_size)
         _, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
@@ -68,12 +88,41 @@ if __name__ == "__main__":
         optimizer.step()
         scheduler.step()
 
-        if (step + 1) % 1000 == 0:
-            losses = estimate_loss(50)
+        if (step + 1) % 500 == 0:  # More frequent loss estimation
+            # Reduced iterations for faster feedback
+            losses = estimate_loss(25)
             print(
                 f"step {step+1}: train {losses['train']:.3f} | val {losses['val']:.3f} | lr {scheduler.get_last_lr()[0]:.2e}")
 
-    torch.save({"model": model.state_dict(),
-                "config": {"vocab_size": vocab_size, "block_size": block_size}},
-               "checkpoints/tinygpt_char.pt")
-    print("Saved tinygpt_char.pt")
+            # Early stopping check
+            if losses['val'] < best_val_loss:
+                best_val_loss = losses['val']
+                no_improve_steps = 0
+                # Save the best model
+                torch.save({"model": model.state_dict(),
+                            "optimizer": optimizer.state_dict(),
+                            "scheduler": scheduler.state_dict(),
+                            "step": step + 1,
+                            "best_val_loss": best_val_loss,
+                            "no_improve_steps": no_improve_steps,
+                            "config": {"vocab_size": vocab_size, "block_size": block_size}},
+                           checkpoint_path)
+                print("Saved tinygpt_char.pt (best model)")
+            else:
+                no_improve_steps += 1
+
+            if no_improve_steps >= patience:
+                print("Early stopping triggered. Training terminated.")
+                break
+
+    if no_improve_steps < patience:
+        # Save the final model if early stopping was not triggered
+        torch.save({"model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict(),
+                    "step": steps,
+                    "best_val_loss": best_val_loss,
+                    "no_improve_steps": no_improve_steps,
+                    "config": {"vocab_size": vocab_size, "block_size": block_size}},
+                   checkpoint_path)
+        print("Saved tinygpt_char.pt (final model)")
