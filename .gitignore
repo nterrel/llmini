@@ -8,3 +8,6 @@ llmini.egg-info/
 *.out
 *.log
 
+# Ignore full checkpoint file
+checkpoints/tinygpt_full.pt
+

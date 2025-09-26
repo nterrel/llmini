@@ -26,8 +26,15 @@ model = TinyGPT(vocab_size=vocab_size, block_size=256, n_layer=6,
                 n_head=8, n_embd=256, dropout=0.0)
 
 # Load the checkpoint
-ckpt = torch.load("checkpoints/tinygpt_char.pt", map_location="cpu")
-state_dict = ckpt["model"]
+ckpt = torch.load("checkpoints/tinygpt_char_small.pt", map_location="cpu")
+
+# Check if the checkpoint contains the 'model' key
+if "model" in ckpt:
+    state_dict = ckpt["model"]
+    print("Loaded full checkpoint.")
+else:
+    state_dict = ckpt  # Assume the checkpoint contains only the model weights
+    print("Loaded model-only checkpoint.")
 
 # Load the state_dict into the model
 model.load_state_dict(state_dict, strict=True)

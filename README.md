@@ -9,6 +9,8 @@ LLMini is a lightweight implementation of a transformer-based language model ins
 - Sampling techniques including temperature and top-k sampling.
 - Pretrained model checkpoint for quick experimentation.
 - Modular design for easy customization and extension.
+- Early stopping and checkpointing during training.
+- Script to split model weights from full checkpoints.
 
 ## Installation
 
@@ -25,6 +27,13 @@ LLMini is a lightweight implementation of a transformer-based language model ins
    pip install -r requirements.txt
    ```
 
+   Alternatively, use the Conda environment:
+
+   ```bash
+   conda env create -f environment.yaml
+   conda activate llmini
+   ```
+
 ## Usage
 
 ### Training
@@ -32,7 +41,7 @@ LLMini is a lightweight implementation of a transformer-based language model ins
 Train the model on the Tiny Shakespeare dataset:
 
 ```bash
-python scripts/train_model.py
+python llmini/train.py
 ```
 
 ### Text Generation
@@ -40,7 +49,21 @@ python scripts/train_model.py
 Generate text using the pretrained model:
 
 ```bash
-python scripts/generate_text.py
+python llmini/sample.py
+```
+
+To enable debugging logs:
+
+```bash
+python llmini/sample.py --debug
+```
+
+### Splitting Checkpoints
+
+Split the model weights from a full checkpoint:
+
+```bash
+python llmini/scripts/split_pt.py --full-checkpoint checkpoints/tinygpt_full.pt --output checkpoints/tinygpt_char_small.pt
 ```
 
 ### Evaluation

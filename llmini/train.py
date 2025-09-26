@@ -127,7 +127,7 @@ if __name__ == "__main__":
                 break
 
     if no_improve_steps < patience:
-        # Save the final model if early stopping was not triggered
+        # Save the full checkpoint locally
         torch.save({"model": model.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler.state_dict(),
@@ -135,5 +135,5 @@ if __name__ == "__main__":
                     "best_val_loss": best_val_loss,
                     "no_improve_steps": no_improve_steps,
                     "config": {"vocab_size": vocab_size, "block_size": block_size}},
-                   checkpoint_path)
-        print("Saved tinygpt_char.pt (final model)")
+                   "checkpoints/tinygpt_full.pt")
+        print("Saved tinygpt_full.pt (full training checkpoint)")
