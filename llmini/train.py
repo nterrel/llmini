@@ -72,11 +72,22 @@ if __name__ == "__main__":
         print("Loading checkpoint...")
         checkpoint = torch.load(checkpoint_path)
         model.load_state_dict(checkpoint["model"])
-        optimizer.load_state_dict(checkpoint["optimizer"])
-        scheduler.load_state_dict(checkpoint["scheduler"])
-        start_step = checkpoint["step"]
-        best_val_loss = checkpoint["best_val_loss"]
-        no_improve_steps = checkpoint["no_improve_steps"]
+        start_step = checkpoint.get("step", 0)
+        best_val_loss = checkpoint.get("best_val_loss", float('inf'))
+        no_improve_steps = checkpoint.get("no_improve_steps", 0)
+
+        if "optimizer" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer"])
+        else:
+            print(
+                "Warning: Optimizer state not found in checkpoint. Reinitializing optimizer.")
+
+        if "scheduler" in checkpoint:
+            scheduler.load_state_dict(checkpoint["scheduler"])
+        else:
+            print(
+                "Warning: Scheduler state not found in checkpoint. Reinitializing scheduler.")
+
         print(f"Resuming training from step {start_step}")
 
     for step in trange(start_step, steps):
