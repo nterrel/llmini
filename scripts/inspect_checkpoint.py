@@ -1,6 +1,7 @@
 import torch
 import argparse
 
+
 def inspect_checkpoint(checkpoint_path):
     """
     Inspect the contents of a checkpoint file.
@@ -19,6 +20,7 @@ def inspect_checkpoint(checkpoint_path):
         print("\nModel state_dict keys:")
         for key in checkpoint["model"].keys():
             print(f"- {key}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inspect the contents of a checkpoint file.")
