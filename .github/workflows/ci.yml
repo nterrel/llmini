@@ -38,6 +38,11 @@ jobs:
       run: |
         pip install -e .
 
+    - name: Download tinyshakespeare.txt
+      run: |
+        mkdir -p data
+        curl -o data/tinyshakespeare.txt https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+
     - name: Run tests
       run: |
         pytest --maxfail=5 --disable-warnings -v

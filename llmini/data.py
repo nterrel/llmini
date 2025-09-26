@@ -7,6 +7,7 @@ BLOCK_SIZE = 128  # Centralized block size configuration
 
 
 def load_char_data(path="/Users/nickterrel/llmini/data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
+    global train_data, val_data  # Ensure these are accessible globally
     text = Path(path).read_text(encoding="utf-8")
     chars = sorted(list(set(text)))
     stoi = {ch: i for i, ch in enumerate(chars)}
@@ -21,7 +22,6 @@ def load_char_data(path="/Users/nickterrel/llmini/data/tinyshakespeare.txt", blo
 
     data = np.array(encode(text), dtype=np.int64)
     n = int(len(data) * split)
-    global train_data, val_data
     train_data, val_data = data[:n], data[n:]
 
     vocab_size = len(chars)
