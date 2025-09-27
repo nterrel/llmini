@@ -6,7 +6,7 @@ import torch
 BLOCK_SIZE = 128  # Centralized block size configuration
 
 
-def load_char_data(path="/Users/nickterrel/llmini/data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
+def load_char_data(path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
     global train_data, val_data  # Ensure these are accessible globally
     text = Path(path).read_text(encoding="utf-8")
     chars = sorted(list(set(text)))
