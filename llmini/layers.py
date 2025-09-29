@@ -50,9 +50,12 @@ class CausalSelfAttention(nn.Module):
             torch.Tensor: Output tensor of the same shape as the input.
         """
         B, T, C = x.size()
-        k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)   # (B, nh, T, hs)
-        q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
-        v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+        k = self.key(x).view(B, T, self.n_head, C //
+                             self.n_head).transpose(1, 2)   # (B, nh, T, hs)
+        q = self.query(x).view(B, T, self.n_head, C //
+                               self.n_head).transpose(1, 2)
+        v = self.value(x).view(B, T, self.n_head, C //
+                               self.n_head).transpose(1, 2)
         att = (q @ k.transpose(-2, -1)) / math.sqrt(k.size(-1))
         att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float('-inf'))
         att = torch.softmax(att, dim=-1)
