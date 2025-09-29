@@ -6,33 +6,31 @@ import torch
 BLOCK_SIZE = 128  # Centralized block size configuration
 
 
-def load_char_data(path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
-    global train_data, val_data  # Ensure these are accessible globally
-    text = Path(path).read_text(encoding="utf-8")
-    chars = sorted(list(set(text)))
-    stoi = {ch: i for i, ch in enumerate(chars)}
-    itos = {i: ch for ch, i in stoi.items()}
+class CharDataLoader:
+    def __init__(self, path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
+        self.block_size = block_size
+        self.device = device
+        text = Path(path).read_text(encoding="utf-8")
+        chars = sorted(list(set(text)))
+        self.stoi = {ch: i for i, ch in enumerate(chars)}
+        self.itos = {i: ch for ch, i in self.stoi.items()}
 
-    def encode(s):
-        return [stoi[c] for c in s]
+        data = np.array(self.encode(text), dtype=np.int64)
+        n = int(len(data) * split)
+        self.train_data, self.val_data = data[:n], data[n:]
+        self.vocab_size = len(chars)
 
-    def decode(xs):
-        # Replace invalid tokens with '?'
-        return "".join([itos[x] if x in itos else "?" for x in xs])
+    def encode(self, s):
+        return [self.stoi[c] for c in s]
 
-    data = np.array(encode(text), dtype=np.int64)
-    n = int(len(data) * split)
-    train_data, val_data = data[:n], data[n:]
+    def decode(self, xs):
+        return "".join([self.itos.get(x, "?") for x in xs])
 
-    vocab_size = len(chars)
-    return vocab_size, get_batch, decode, stoi, itos
-
-
-def get_batch(split="train", batch_size=64, device="cpu"):
-    source = train_data if split == "train" else val_data
-    ix = np.random.randint(
-        0, len(source) - BLOCK_SIZE - 1, size=(batch_size,))
-    x = np.stack([source[i:i + BLOCK_SIZE] for i in ix])
-    y = np.stack([source[i + 1:i + BLOCK_SIZE + 1] for i in ix])
-    return (torch.from_numpy(x).to(device),
-            torch.from_numpy(y).to(device))
+    def get_batch(self, split="train", batch_size=64):
+        source = self.train_data if split == "train" else self.val_data
+        ix = np.random.randint(
+            0, len(source) - self.block_size - 1, size=(batch_size,))
+        x = np.stack([source[i:i + self.block_size] for i in ix])
+        y = np.stack([source[i + 1:i + self.block_size + 1] for i in ix])
+        return (torch.from_numpy(x).to(self.device),
+                torch.from_numpy(y).to(self.device))
