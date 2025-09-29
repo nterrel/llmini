@@ -9,6 +9,18 @@ import os
 
 
 def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
+    """
+    Load a model checkpoint from the specified path.
+
+    Args:
+        checkpoint_path (str): Path to the checkpoint file.
+        model (torch.nn.Module): The model to load the checkpoint into.
+        optimizer (torch.optim.Optimizer, optional): Optimizer to load the state into.
+        scheduler (torch.optim.lr_scheduler, optional): Scheduler to load the state into.
+
+    Returns:
+        tuple: A tuple (start_step, best_val_loss, no_improve_steps) containing the training state.
+    """
     if os.path.exists(checkpoint_path):
         print("Loading checkpoint...")
         checkpoint = torch.load(checkpoint_path)
@@ -28,6 +40,18 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
 
 
 def save_checkpoint(checkpoint_path, model, optimizer, scheduler, step, best_val_loss, no_improve_steps):
+    """
+    Save the current training state to a checkpoint file.
+
+    Args:
+        checkpoint_path (str): Path to save the checkpoint file.
+        model (torch.nn.Module): The model to save.
+        optimizer (torch.optim.Optimizer): The optimizer to save.
+        scheduler (torch.optim.lr_scheduler): The scheduler to save.
+        step (int): The current training step.
+        best_val_loss (float): The best validation loss achieved so far.
+        no_improve_steps (int): The number of steps without improvement in validation loss.
+    """
     torch.save({"model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "scheduler": scheduler.state_dict(),
@@ -66,6 +90,16 @@ scheduler = torch.optim.lr_scheduler.LambdaLR(
 
 
 def estimate_loss(iters=25, test_mode=False):
+    """
+    Estimate the training and validation loss over a number of iterations.
+
+    Args:
+        iters (int): Number of iterations to average the loss over.
+        test_mode (bool): Whether to use a smaller batch size for testing.
+
+    Returns:
+        dict: A dictionary containing the average loss for 'train' and 'val' splits.
+    """
     model.eval()
     outs = {}
     with torch.no_grad():

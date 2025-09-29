@@ -51,7 +51,30 @@ class Block(nn.Module):
 
 
 class TinyGPT(nn.Module):
+    """
+    A lightweight GPT-like model for text generation.
+
+    Attributes:
+        vocab_size (int): Size of the vocabulary.
+        block_size (int): Maximum sequence length.
+        n_layer (int): Number of transformer layers.
+        n_head (int): Number of attention heads.
+        n_embd (int): Embedding dimension.
+        dropout (float): Dropout rate.
+    """
+
     def __init__(self, vocab_size, block_size=128, n_layer=4, n_head=4, n_embd=128, dropout=0.1):
+        """
+        Initialize the TinyGPT model.
+
+        Args:
+            vocab_size (int): Size of the vocabulary.
+            block_size (int): Maximum sequence length.
+            n_layer (int): Number of transformer layers.
+            n_head (int): Number of attention heads.
+            n_embd (int): Embedding dimension.
+            dropout (float): Dropout rate.
+        """
         super().__init__()
         self.block_size = block_size
         self.tok_emb = nn.Embedding(vocab_size, n_embd)
@@ -65,12 +88,28 @@ class TinyGPT(nn.Module):
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
+        """
+        Initialize the weights of the model using Xavier initialization.
+
+        Args:
+            m (nn.Module): Module to initialize.
+        """
         if isinstance(m, (nn.Linear, nn.Embedding)):
-            nn.init.xavier_uniform_(m.weight)  # Use Xavier initialization
+            nn.init.xavier_uniform_(m.weight)
         if isinstance(m, nn.Linear) and m.bias is not None:
             nn.init.zeros_(m.bias)
 
     def forward(self, idx, targets=None):
+        """
+        Perform a forward pass through the model.
+
+        Args:
+            idx (torch.Tensor): Input tensor of token indices.
+            targets (torch.Tensor, optional): Target tensor for computing loss.
+
+        Returns:
+            tuple: A tuple (logits, loss) where logits are the model predictions and loss is the computed loss (if targets are provided).
+        """
         B, T = idx.size()
         pos = torch.arange(0, T, device=idx.device).unsqueeze(0)
         x = self.tok_emb(idx) + self.pos_emb(pos)
@@ -86,6 +125,18 @@ class TinyGPT(nn.Module):
 
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
+        """
+        Generate text by sampling tokens from the model's predictions.
+
+        Args:
+            idx (torch.Tensor): Input tensor of token indices.
+            max_new_tokens (int): Maximum number of new tokens to generate.
+            temperature (float): Sampling temperature.
+            top_k (int, optional): Top-k sampling parameter.
+
+        Returns:
+            torch.Tensor: Generated token indices.
+        """
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -self.block_size:]
             logits, _ = self(idx_cond)
@@ -102,7 +153,30 @@ class TinyGPT(nn.Module):
 
 
 class ComplexGPT(nn.Module):
+    """
+    A more complex GPT-like model with additional layers and parameters.
+
+    Attributes:
+        vocab_size (int): Size of the vocabulary.
+        block_size (int): Maximum sequence length.
+        n_layer (int): Number of transformer layers.
+        n_head (int): Number of attention heads.
+        n_embd (int): Embedding dimension.
+        dropout (float): Dropout rate.
+    """
+
     def __init__(self, vocab_size, block_size, n_layer=8, n_head=8, n_embd=512, dropout=0.1):
+        """
+        Initialize the ComplexGPT model.
+
+        Args:
+            vocab_size (int): Size of the vocabulary.
+            block_size (int): Maximum sequence length.
+            n_layer (int): Number of transformer layers.
+            n_head (int): Number of attention heads.
+            n_embd (int): Embedding dimension.
+            dropout (float): Dropout rate.
+        """
         super().__init__()
         self.vocab_size = vocab_size
         self.block_size = block_size
@@ -123,6 +197,16 @@ class ComplexGPT(nn.Module):
         self.head = nn.Linear(n_embd, vocab_size, bias=False)
 
     def forward(self, idx, targets=None):
+        """
+        Perform a forward pass through the model.
+
+        Args:
+            idx (torch.Tensor): Input tensor of token indices.
+            targets (torch.Tensor, optional): Target tensor for computing loss.
+
+        Returns:
+            tuple: A tuple (logits, loss) where logits are the model predictions and loss is the computed loss (if targets are provided).
+        """
         B, T = idx.size()
         assert T <= self.block_size, "Input sequence length exceeds block size."
 

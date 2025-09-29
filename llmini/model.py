@@ -7,13 +7,16 @@ def get_model(architecture, vocab_size, block_size, device):
     Select and return the appropriate model based on the architecture.
 
     Args:
-        architecture: The model architecture (e.g., "tiny", "complex").
-        vocab_size: Size of the vocabulary.
-        block_size: Maximum sequence length.
-        device: Device to load the model on.
+        architecture (str): The model architecture (e.g., "tiny", "complex").
+        vocab_size (int): Size of the vocabulary.
+        block_size (int): Maximum sequence length.
+        device (str): Device to load the model on (e.g., 'cpu', 'cuda').
 
     Returns:
-        An instance of the selected model.
+        nn.Module: An instance of the selected model.
+
+    Raises:
+        ValueError: If the specified architecture is not recognized.
     """
     if architecture == "tiny":
         return TinyGPT(vocab_size, block_size=block_size, n_layer=6, n_head=8, n_embd=256, dropout=0.0).to(device)
@@ -29,13 +32,16 @@ def get_model_from_args(args, vocab_size, block_size, device):
     Prompts the user to select a model if not provided in args.
 
     Args:
-        args: Parsed command-line arguments.
-        vocab_size: Size of the vocabulary.
-        block_size: Maximum sequence length.
-        device: Device to load the model on.
+        args (argparse.Namespace): Parsed command-line arguments.
+        vocab_size (int): Size of the vocabulary.
+        block_size (int): Maximum sequence length.
+        device (str): Device to load the model on (e.g., 'cpu', 'cuda').
 
     Returns:
-        An instance of the selected model.
+        nn.Module: An instance of the selected model.
+
+    Raises:
+        ValueError: If the user provides an unrecognized model type.
     """
     if not hasattr(args, 'model') or not args.model:
         args.model = input(
