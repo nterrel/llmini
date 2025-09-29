@@ -3,7 +3,7 @@ import torch
 import math
 from tqdm import trange
 from llmini.data import load_char_data
-from llmini.model import TinyGPT
+from llmini.utils import parse_arguments, get_model_from_args
 import os
 import requests
 
@@ -16,14 +16,11 @@ vocab_size, get_batch, decode, _, _ = load_char_data(
 steps = 5000  # Reduced from 20000 to speed up training
 lr = 3e-4  # keep for now
 
-model = TinyGPT(
-    vocab_size,
-    block_size=block_size,
-    n_layer=6,  # Keeping model complexity
-    n_head=8,
-    n_embd=256,
-    dropout=0.0  # tiny datasets do better with little/no dropout
-).to(device)
+# Parse arguments
+args = parse_arguments()
+
+# Initialize the model
+model = get_model_from_args(args, vocab_size, block_size, device)
 
 optimizer = torch.optim.AdamW(
     model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.1)

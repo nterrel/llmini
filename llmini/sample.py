@@ -1,29 +1,19 @@
 # sample.py
 import torch
 from llmini.data import load_char_data
-from llmini.model import TinyGPT
-import torch.nn as nn
-import argparse
+from llmini.utils import parse_arguments, get_model_from_args
 
 # Load vocabulary and mappings
 vocab_size, get_batch, decode, stoi, itos = load_char_data()
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--debug", action="store_true",
-                    help="Enable debugging logs")
-args = parser.parse_args()
+args = parse_arguments()
 
-# Debugging flag
+# Initialize the model
+model = get_model_from_args(args, vocab_size, block_size=256, device="cpu")
+
+# Define DEBUG based on arguments
 DEBUG = args.debug
-
-if DEBUG:
-    print(f"Model vocab_size: {vocab_size}")
-    print(f"itos size: {len(itos)}")
-
-# Initialize the model with the same configuration as in train.py
-model = TinyGPT(vocab_size=vocab_size, block_size=256, n_layer=6,
-                n_head=8, n_embd=256, dropout=0.0)
 
 # Load the checkpoint
 ckpt = torch.load("checkpoints/tinygpt_char_small.pt", map_location="cpu")
