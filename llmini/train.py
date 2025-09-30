@@ -2,10 +2,10 @@
 import torch
 import math
 from tqdm import trange
-from llmini.data import CharDataLoader
 from llmini.utils import parse_arguments, get_model_from_args
 from llmini.config import BLOCK_SIZE, BATCH_SIZE, STEPS, LEARNING_RATE, DEVICE
 import os
+from llmini.data import CharDataLoader
 
 
 def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
@@ -62,11 +62,6 @@ def save_checkpoint(checkpoint_path, model, optimizer, scheduler, step, best_val
     print(f"Saved checkpoint at step {step}")
 
 
-# Initialize data loader
-data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
-vocab_size = data_loader.vocab_size
-
-
 def estimate_loss(iters=25, test_mode=False):
     """
     Estimate the training and validation loss over a number of iterations.
@@ -93,9 +88,24 @@ def estimate_loss(iters=25, test_mode=False):
     return outs
 
 
+# Initialize data loader
+data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+vocab_size = data_loader.vocab_size
+
+
 if __name__ == "__main__":
     # Parse arguments
     args = parse_arguments()
+
+    # Initialize the appropriate data loader based on the dataset
+    if args.dataset == "wikitext":
+        from llmini.data import WikiTextDataLoader
+        data_loader = WikiTextDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+    else:
+        from llmini.data import CharDataLoader
+        data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+
+    vocab_size = data_loader.vocab_size
 
     # Initialize the model
     model = get_model_from_args(args, vocab_size, BLOCK_SIZE, DEVICE)

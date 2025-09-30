@@ -2,6 +2,7 @@
 from pathlib import Path
 import numpy as np
 import torch
+from llmini.scripts.load_wikitext import WikiTextDataset
 
 BLOCK_SIZE = 128  # Centralized block size configuration
 
@@ -86,6 +87,62 @@ class CharDataLoader:
                 torch.from_numpy(y).to(self.device))
 
 
+class WikiTextDataLoader:
+    """
+    A class for loading and batching tokenized WikiText data for training and evaluation.
+
+    Attributes:
+        block_size (int): Maximum sequence length for batching.
+        device (str): Device to load the data onto (e.g., 'cpu', 'cuda').
+        train_data (list): Tokenized training data.
+        val_data (list): Tokenized validation data.
+        vocab_size (int): Size of the vocabulary.
+    """
+
+    def __init__(self, path="external/wikitext/wikitext-2-v1/train-00000-of-00001.parquet", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
+        """
+        Initialize the WikiTextDataLoader.
+
+        Args:
+            path (str): Path to the .parquet file containing the dataset.
+            block_size (int): Maximum sequence length for batching.
+            split (float): Fraction of data to use for training (remainder is for validation).
+            device (str): Device to load the data onto (e.g., 'cpu', 'cuda').
+        """
+        self.block_size = block_size
+        self.device = device
+
+        # Load the dataset
+        dataset = WikiTextDataset(path)
+        # Tokenize the dataset
+        data = [token for text in dataset for token in text.split()]
+
+        # Split the data into training and validation sets
+        n = int(len(data) * split)
+        self.train_data, self.val_data = data[:n], data[n:]
+        # Vocabulary size based on unique tokens
+        self.vocab_size = len(set(data))
+
+    def get_batch(self, split="train", batch_size=64):
+        """
+        Generate a batch of input and target sequences.
+
+        Args:
+            split (str): Data split to use ('train' or 'val').
+            batch_size (int): Number of sequences in the batch.
+
+        Returns:
+            tuple: A tuple (x, y) where x is the input tensor and y is the target tensor.
+        """
+        source = self.train_data if split == "train" else self.val_data
+        ix = np.random.randint(
+            0, len(source) - self.block_size - 1, size=(batch_size,))
+        x = np.stack([source[i:i + self.block_size] for i in ix])
+        y = np.stack([source[i + 1:i + self.block_size + 1] for i in ix])
+        return (torch.tensor(x, dtype=torch.long).to(self.device),
+                torch.tensor(y, dtype=torch.long).to(self.device))
+
+
 def load_char_data(path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
     """
     Load character-level data and return essential components.
@@ -99,7 +156,8 @@ def load_char_data(path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split
     Returns:
         tuple: A tuple containing (vocab_size, decode, stoi, itos).
     """
-    data_loader = CharDataLoader(path=path, block_size=block_size, split=split, device=device)
+    data_loader = CharDataLoader(
+        path=path, block_size=block_size, split=split, device=device)
     return data_loader.vocab_size, data_loader.decode, data_loader.stoi, data_loader.itos
 
 
@@ -117,5 +175,6 @@ def get_batch(split="train", batch_size=64, path="data/tinyshakespeare.txt", blo
     Returns:
         tuple: A tuple (x, y) where x is the input tensor and y is the target tensor.
     """
-    data_loader = CharDataLoader(path=path, block_size=block_size, split=0.9, device=device)  # Ensure split is a float
+    data_loader = CharDataLoader(
+        path=path, block_size=block_size, split=0.9, device=device)  # Ensure split is a float
     return data_loader.get_batch(split=split, batch_size=batch_size)

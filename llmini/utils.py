@@ -34,6 +34,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=["tiny", "complex"], default="tiny",
                         help="Choose the model architecture: 'tiny' or 'complex'")
+    parser.add_argument("--dataset", choices=["tinyshakespeare", "wikitext"], default="tinyshakespeare",
+                        help="Choose the dataset: 'tinyshakespeare' or 'wikitext'")
     return parser.parse_args()
 
 
