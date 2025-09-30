@@ -1,5 +1,6 @@
 import argparse
 import logging
+from llmini.model import get_model
 
 
 def setup_logger(name, level=logging.INFO):
@@ -34,3 +35,27 @@ def parse_arguments():
     parser.add_argument("--model", choices=["tiny", "complex"], default="tiny",
                         help="Choose the model architecture: 'tiny' or 'complex'")
     return parser.parse_args()
+
+
+def get_model_from_args(args, vocab_size, block_size, device):
+    """
+    Wrapper function to select and return the appropriate model based on parsed arguments.
+    Prompts the user to select a model if not provided in args.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
+        vocab_size (int): Size of the vocabulary.
+        block_size (int): Maximum sequence length.
+        device (str): Device to load the model on (e.g., 'cpu', 'cuda').
+
+    Returns:
+        nn.Module: An instance of the selected model.
+
+    Raises:
+        ValueError: If the user provides an unrecognized model type.
+    """
+    if not hasattr(args, 'model') or not args.model:
+        args.model = input(
+            "Please specify the model architecture (tiny/complex): ").strip().lower()
+
+    return get_model(args.model, vocab_size, block_size, device)
