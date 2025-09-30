@@ -1,0 +1,3 @@
+[submodule "external/wikitext"]
+	path = external/wikitext
+	url = https://huggingface.co/datasets/Salesforce/wikitext

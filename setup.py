@@ -9,6 +9,10 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/nterrel/llmini",
     packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        "": ["external/*"],  # Include all files in the external directory
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
