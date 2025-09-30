@@ -7,11 +7,20 @@ def setup_external():
     external_dir = "external"
     target_dir = os.path.join(external_dir, "wikitext")
 
+    if not os.path.exists(".gitmodules"):
+        print("Error: .gitmodules file is missing. Ensure the repository includes submodule configuration.")
+        return
+
     if not os.path.exists(target_dir):
         os.makedirs(external_dir, exist_ok=True)
-        subprocess.run(["git", "submodule", "update",
-                       "--init", "--recursive"], check=True)
-        print(f"Initialized submodule at {target_dir}")
+        try:
+            subprocess.run(
+                ["git", "submodule", "update", "--init", "--recursive"],
+                check=True,
+            )
+            print(f"Initialized submodule at {target_dir}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error initializing submodule: {e}")
     else:
         print(f"Submodule already exists at {target_dir}")
 

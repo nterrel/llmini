@@ -18,4 +18,4 @@ dependencies:
       - llmini==1.0.0
       - portalocker
       - tiktoken
-      - -e ./external/<repo-name>
+      - -e ./external/wikitext

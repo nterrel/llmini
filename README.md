@@ -14,10 +14,10 @@ LLMini is a lightweight implementation of a transformer-based language model ins
 
 ## Installation
 
-1. Clone the repository:
+1. Clone the repository with submodules:
 
    ```bash
-   git clone https://github.com/nterrel/llmini.git
+   git clone --recurse-submodules <repo-url>
    cd llmini
    ```
 
@@ -33,6 +33,10 @@ LLMini is a lightweight implementation of a transformer-based language model ins
    conda env create -f environment.yaml
    conda activate llmini
    ```
+
+3. Initialize external dependencies:
+
+   The `setup_external.py` script will automatically initialize external dependencies during installation.
 
 ## Usage
 
