@@ -48,10 +48,30 @@ Train the model on the Tiny Shakespeare dataset:
 python llmini/train.py
 ```
 
-To train a specific model, use the `--model` flag:
+#### Training Options
+
+- **Model Selection**: Specify the model architecture using the `--model` flag. For example:
+
+  ```bash
+  python llmini/train.py --model tiny
+  ```
+
+- **Dataset Selection**: Choose the dataset to train on using the `--dataset` flag. Supported datasets include `tinyshakespeare` and `wikitext`. For example:
+
+  ```bash
+  python llmini/train.py --dataset wikitext
+  ```
+
+- **Checkpoint Path**: Resume training from a specific checkpoint using the `--checkpoint` flag. For example:
+
+  ```bash
+  python llmini/train.py --checkpoint checkpoints/tinygpt_char.pt
+  ```
+
+These options can be combined to customize the training process. For instance:
 
 ```bash
-python llmini/train.py --model tiny
+python llmini/train.py --model tiny --dataset wikitext --checkpoint checkpoints/tinygpt_char.pt
 ```
 
 ### Text Generation
@@ -77,15 +97,15 @@ python llmini/sample.py --model tiny
 ### Splitting Checkpoints
 
 Split the model weights from a full checkpoint:
-
-```bash
-python llmini/scripts/split_pt.py --full-checkpoint checkpoints/tinygpt_full.pt --output checkpoints/tinygpt_char_small.pt
-```
-
-### Evaluation
-
-Evaluate the model's performance:
-
+llmini/
+├── arch.py        # Model architectures
+├── config.py      # Centralized configuration
+├── data.py        # Data loading and preprocessing
+├── layers.py      # Reusable building blocks for models
+├── model.py       # Model initialization and utilities
+├── sample.py      # Text generation script
+├── train.py       # Training script
+├── utils.py       # Shared utilities
 ```bash
 python scripts/evaluate.py
 ```
