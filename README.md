@@ -44,6 +44,12 @@ Train the model on the Tiny Shakespeare dataset:
 python llmini/train.py
 ```
 
+To train a specific model, use the `--model` flag:
+
+```bash
+python llmini/train.py --model tiny
+```
+
 ### Text Generation
 
 Generate text using the pretrained model:
@@ -56,6 +62,12 @@ To enable debugging logs:
 
 ```bash
 python llmini/sample.py --debug
+```
+
+To generate text with a specific model:
+
+```bash
+python llmini/sample.py --model tiny
 ```
 
 ### Splitting Checkpoints
@@ -72,6 +84,32 @@ Evaluate the model's performance:
 
 ```bash
 python scripts/evaluate.py
+```
+
+### Configuration
+
+Modify `llmini/config.py` to adjust parameters like `BLOCK_SIZE`, `BATCH_SIZE`, and `LEARNING_RATE`.
+
+## Project Structure
+
+```
+llmini/
+├── arch.py        # Model architectures
+├── config.py      # Centralized configuration
+├── data.py        # Data loading and preprocessing
+├── layers.py      # Reusable building blocks for models
+├── model.py       # Model initialization and utilities
+├── sample.py      # Text generation script
+├── train.py       # Training script
+├── utils.py       # Shared utilities
+```
+
+## Testing
+
+Run the test suite using:
+
+```bash
+pytest tests/
 ```
 
 ## Contributing

@@ -1,2 +1,2 @@
-from .data import load_char_data
+from .data import CharDataLoader
 from .model import TinyGPT
