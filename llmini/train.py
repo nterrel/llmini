@@ -66,28 +66,6 @@ def save_checkpoint(checkpoint_path, model, optimizer, scheduler, step, best_val
 data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
 vocab_size = data_loader.vocab_size
 
-# Parse arguments
-args = parse_arguments()
-
-# Initialize the model
-model = get_model_from_args(args, vocab_size, BLOCK_SIZE, DEVICE)
-
-optimizer = torch.optim.AdamW(
-    model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.95), weight_decay=0.1)
-
-warmup = 200
-min_lr = LEARNING_RATE * 0.1
-patience = 10
-
-scheduler = torch.optim.lr_scheduler.LambdaLR(
-    optimizer,
-    lr_lambda=lambda t: min(
-        1.0,
-        (t + 1) / warmup
-    ) if t < warmup else (
-        min_lr / LEARNING_RATE + (1 - min_lr / LEARNING_RATE) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, STEPS - warmup))))
-)
-
 
 def estimate_loss(iters=25, test_mode=False):
     """
@@ -116,6 +94,28 @@ def estimate_loss(iters=25, test_mode=False):
 
 
 if __name__ == "__main__":
+    # Parse arguments
+    args = parse_arguments()
+
+    # Initialize the model
+    model = get_model_from_args(args, vocab_size, BLOCK_SIZE, DEVICE)
+
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.95), weight_decay=0.1)
+
+    warmup = 200
+    min_lr = LEARNING_RATE * 0.1
+    patience = 10
+
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda=lambda t: min(
+            1.0,
+            (t + 1) / warmup
+        ) if t < warmup else (
+            min_lr / LEARNING_RATE + (1 - min_lr / LEARNING_RATE) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, STEPS - warmup))))
+    )
+
     checkpoint_path = "checkpoints/tinygpt_char.pt"
     start_step, best_val_loss, no_improve_steps = load_checkpoint(
         checkpoint_path, model, optimizer, scheduler)
