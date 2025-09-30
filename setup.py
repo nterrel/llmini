@@ -1,4 +1,9 @@
+import os
 from setuptools import setup, find_packages
+
+# Run the setup script for external dependencies
+if os.path.exists("scripts/setup_external.py"):
+    exec(open("scripts/setup_external.py").read())
 
 setup(
     name="llmini",
@@ -24,5 +29,4 @@ setup(
         "numpy",
         "tqdm",
     ],
-    include_package_data=True,
 )
