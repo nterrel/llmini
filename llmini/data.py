@@ -94,9 +94,11 @@ class WikiTextDataLoader:
     Attributes:
         block_size (int): Maximum sequence length for batching.
         device (str): Device to load the data onto (e.g., 'cpu', 'cuda').
-        train_data (list): Tokenized training data.
-        val_data (list): Tokenized validation data.
+        train_data (list): Numericalized training data.
+        val_data (list): Numericalized validation data.
         vocab_size (int): Size of the vocabulary.
+        stoi (dict): String-to-index mapping for tokens.
+        itos (dict): Index-to-string mapping for tokens.
     """
 
     def __init__(self, path="external/wikitext/wikitext-2-v1/train-00000-of-00001.parquet", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
@@ -115,13 +117,20 @@ class WikiTextDataLoader:
         # Load the dataset
         dataset = WikiTextDataset(path)
         # Tokenize the dataset
-        data = [token for text in dataset for token in text.split()]
+        tokens = [token for text in dataset for token in text.split()]
+
+        # Build vocabulary
+        unique_tokens = sorted(set(tokens))
+        self.stoi = {token: idx for idx, token in enumerate(unique_tokens)}
+        self.itos = {idx: token for token, idx in self.stoi.items()}
+        self.vocab_size = len(self.stoi)
+
+        # Numericalize the dataset
+        data = [self.stoi[token] for token in tokens]
 
         # Split the data into training and validation sets
         n = int(len(data) * split)
         self.train_data, self.val_data = data[:n], data[n:]
-        # Vocabulary size based on unique tokens
-        self.vocab_size = len(set(data))
 
     def get_batch(self, split="train", batch_size=64):
         """

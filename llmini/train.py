@@ -126,7 +126,8 @@ if __name__ == "__main__":
             min_lr / LEARNING_RATE + (1 - min_lr / LEARNING_RATE) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, STEPS - warmup))))
     )
 
-    checkpoint_path = "checkpoints/tinygpt_char.pt"
+    # Use the --checkpoint argument for the checkpoint path
+    checkpoint_path = args.checkpoint
     start_step, best_val_loss, no_improve_steps = load_checkpoint(
         checkpoint_path, model, optimizer, scheduler)
 
