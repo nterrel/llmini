@@ -23,10 +23,15 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
         "torch>=1.9.0",
         "numpy",
         "tqdm",
+        "pandas",
+        "pyarrow",
+        "pytest",
+        "portalocker",
+        "tiktoken",
     ],
 )

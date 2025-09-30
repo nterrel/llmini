@@ -36,7 +36,7 @@ LLMini is a lightweight implementation of a transformer-based language model ins
 
 3. Initialize external dependencies:
 
-   The `setup_external.py` script will automatically initialize external dependencies during installation.
+   The `setup_external.py` script automatically initializes external dependencies, such as downloading datasets or setting up submodules, during installation.
 
 ## Usage
 
@@ -96,7 +96,7 @@ Modify `llmini/config.py` to adjust parameters like `BLOCK_SIZE`, `BATCH_SIZE`, 
 
 ## Project Structure
 
-```
+```md
 llmini/
 ├── arch.py        # Model architectures
 ├── config.py      # Centralized configuration
