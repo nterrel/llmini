@@ -14,7 +14,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/nterrel/llmini",
     packages=find_packages(
-        include=["llmini", "llmini.*", "scripts", "scripts.*"]),
+        include=["llmini", "llmini.*"]),
     include_package_data=True,
     package_data={
         "": ["external/*"],  # Include all files in the external directory
