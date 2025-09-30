@@ -84,3 +84,38 @@ class CharDataLoader:
         y = np.stack([source[i + 1:i + self.block_size + 1] for i in ix])
         return (torch.from_numpy(x).to(self.device),
                 torch.from_numpy(y).to(self.device))
+
+
+def load_char_data(path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, split=0.9, device="cpu"):
+    """
+    Load character-level data and return essential components.
+
+    Args:
+        path (str): Path to the text file containing the dataset.
+        block_size (int): Maximum sequence length for batching.
+        split (float): Fraction of data to use for training (remainder is for validation).
+        device (str): Device to load the data onto (e.g., 'cpu', 'cuda').
+
+    Returns:
+        tuple: A tuple containing (vocab_size, decode, stoi, itos).
+    """
+    data_loader = CharDataLoader(path=path, block_size=block_size, split=split, device=device)
+    return data_loader.vocab_size, data_loader.decode, data_loader.stoi, data_loader.itos
+
+
+def get_batch(split="train", batch_size=64, path="data/tinyshakespeare.txt", block_size=BLOCK_SIZE, device="cpu"):
+    """
+    Generate a batch of input and target sequences using CharDataLoader.
+
+    Args:
+        split (str): Data split to use ('train' or 'val').
+        batch_size (int): Number of sequences in the batch.
+        path (str): Path to the text file containing the dataset.
+        block_size (int): Maximum sequence length for batching.
+        device (str): Device to load the data onto (e.g., 'cpu', 'cuda').
+
+    Returns:
+        tuple: A tuple (x, y) where x is the input tensor and y is the target tensor.
+    """
+    data_loader = CharDataLoader(path=path, block_size=block_size, split=0.9, device=device)  # Ensure split is a float
+    return data_loader.get_batch(split=split, batch_size=batch_size)
