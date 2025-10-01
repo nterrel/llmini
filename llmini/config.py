@@ -3,6 +3,6 @@
 
 BLOCK_SIZE = 256  # Updated to match the checkpoint configuration
 BATCH_SIZE = 64
-STEPS = 5000
+STEPS = 1000
 LEARNING_RATE = 3e-4
 DEVICE = "cpu"

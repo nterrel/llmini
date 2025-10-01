@@ -119,8 +119,10 @@ if __name__ == "__main__":
         if param.dim() > 1:
             xavier_uniform_(param)
 
-    # Add dropout for regularization
-    dropout = Dropout(p=0.1)
+    # Integrate dropout into the model
+    # Ensure the model definition includes dropout layers
+    # Example: Add dropout to the model architecture
+    model.dropout = Dropout(p=0.1)  # Add dropout to the model instance
 
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.95), weight_decay=0.1)
@@ -135,10 +137,14 @@ if __name__ == "__main__":
     best_val_loss = float('inf')
 
     # Use the --checkpoint argument for the checkpoint path
-    checkpoint_path = f"checkpoints/complex_model_step_{step + 1}.pt"
     start_step, best_val_loss, no_improve_steps = load_checkpoint(
-        checkpoint_path, model, optimizer, scheduler)
+        args.checkpoint, model, optimizer, scheduler)
 
+    # Dynamic validation frequency based on dataset size
+    validation_frequency = max(
+        100, len(data_loader.train_data) // (10 * BATCH_SIZE))
+
+    # Ensure 'step' is properly referenced in the checkpoint path logic
     for step in trange(start_step, STEPS):
         xb, yb = data_loader.get_batch("train", BATCH_SIZE)
         _, loss = model(xb, yb)
@@ -148,7 +154,10 @@ if __name__ == "__main__":
         optimizer.step()
         scheduler.step()
 
-        if (step + 1) % 500 == 0:
+        # Update checkpoint path dynamically
+        checkpoint_path = f"checkpoints/complex/complex_model_step_{step + 1}.pt"
+
+        if (step + 1) % validation_frequency == 0:
             losses = estimate_loss(25)
             print(
                 f"step {step+1}: train {losses['train']:.3f} | val {losses['val']:.3f} | lr {scheduler.get_last_lr()[0]:.2e}")

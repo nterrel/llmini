@@ -5,7 +5,7 @@ class WikiTextDataset:
     def __init__(self, file_path):
         # Load the .parquet file using pyarrow
         table = pq.read_table(file_path)
-        #print("Schema:", table.schema)
+        # print("Schema:", table.schema)
 
         # Extract the 'text' column directly
         try:
