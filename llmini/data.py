@@ -3,6 +3,10 @@ from pathlib import Path
 import numpy as np
 import torch
 from llmini.scripts.load_wikitext import WikiTextDataset
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from tokenizers.trainers import BpeTrainer
+from tokenizers.pre_tokenizers import Whitespace
 
 BLOCK_SIZE = 128  # Centralized block size configuration
 
@@ -33,15 +37,28 @@ class CharDataLoader:
         """
         self.block_size = block_size
         self.device = device
-        text = Path(path).read_text(encoding="utf-8")
-        chars = sorted(list(set(text)))
-        self.stoi = {ch: i for i, ch in enumerate(chars)}
-        self.itos = {i: ch for ch, i in self.stoi.items()}
 
-        data = np.array(self.encode(text), dtype=np.int64)
+        # Initialize the tokenizer
+        self.tokenizer = Tokenizer(BPE())
+        self.tokenizer.pre_tokenizer = Whitespace()
+        trainer = BpeTrainer(
+            special_tokens=["<unk>", "<pad>", "<bos>", "<eos>"])
+
+        # Train the tokenizer
+        text = Path(path).read_text(encoding="utf-8")
+        self.tokenizer.train_from_iterator([text], trainer)
+
+        # Extract vocabulary
+        self.stoi = self.tokenizer.get_vocab()
+        self.itos = {idx: token for token, idx in self.stoi.items()}
+        self.vocab_size = len(self.stoi)
+
+        # Tokenize the dataset
+        data = np.array(self.tokenizer.encode(text).ids, dtype=np.int64)
+
+        # Split the data into training and validation sets
         n = int(len(data) * split)
         self.train_data, self.val_data = data[:n], data[n:]
-        self.vocab_size = len(chars)
 
     def encode(self, s):
         """

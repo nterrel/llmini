@@ -5,7 +5,7 @@ class WikiTextDataset:
     def __init__(self, file_path):
         # Load the .parquet file using pyarrow
         table = pq.read_table(file_path)
-        print("Schema:", table.schema)
+        #print("Schema:", table.schema)
 
         # Extract the 'text' column directly
         try:
@@ -14,8 +14,8 @@ class WikiTextDataset:
             raise ValueError("The 'text' column is missing in the .parquet file.")
 
         # Debug: Print the first few entries
-        print("Loaded Data:")
-        print(self.texts[:5])
+        # print("Loaded Data:")
+        # print(self.texts[:5])
 
     def __len__(self):
         return len(self.texts)

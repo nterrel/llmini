@@ -6,6 +6,8 @@ from llmini.utils import parse_arguments, get_model_from_args
 from llmini.config import BLOCK_SIZE, BATCH_SIZE, STEPS, LEARNING_RATE, DEVICE
 import os
 from llmini.data import CharDataLoader
+from torch.nn.init import xavier_uniform_
+from torch.nn import Dropout
 
 
 def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
@@ -100,7 +102,9 @@ if __name__ == "__main__":
     # Initialize the appropriate data loader based on the dataset
     if args.dataset == "wikitext":
         from llmini.data import WikiTextDataLoader
-        data_loader = WikiTextDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+        data_loader = WikiTextDataLoader(
+            path="external/wikitext/wikitext-2-raw-v1/train-00000-of-00001.parquet",
+            block_size=BLOCK_SIZE, device=DEVICE)
     else:
         from llmini.data import CharDataLoader
         data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
@@ -110,24 +114,28 @@ if __name__ == "__main__":
     # Initialize the model
     model = get_model_from_args(args, vocab_size, BLOCK_SIZE, DEVICE)
 
+    # Apply Xavier initialization
+    for param in model.parameters():
+        if param.dim() > 1:
+            xavier_uniform_(param)
+
+    # Add dropout for regularization
+    dropout = Dropout(p=0.1)
+
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.95), weight_decay=0.1)
 
-    warmup = 200
-    min_lr = LEARNING_RATE * 0.1
-    patience = 10
+    # Add a learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=STEPS, eta_min=LEARNING_RATE * 0.1)
 
-    scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer,
-        lr_lambda=lambda t: min(
-            1.0,
-            (t + 1) / warmup
-        ) if t < warmup else (
-            min_lr / LEARNING_RATE + (1 - min_lr / LEARNING_RATE) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, STEPS - warmup))))
-    )
+    # Early stopping parameters
+    patience = 10
+    no_improve_steps = 0
+    best_val_loss = float('inf')
 
     # Use the --checkpoint argument for the checkpoint path
-    checkpoint_path = args.checkpoint
+    checkpoint_path = f"checkpoints/complex_model_step_{step + 1}.pt"
     start_step, best_val_loss, no_improve_steps = load_checkpoint(
         checkpoint_path, model, optimizer, scheduler)
 
