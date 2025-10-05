@@ -3,3 +3,5 @@ numpy
 tqdm
 pytest
 requests
+pyarrow>=15.0.0
+tokenizers>=0.15.0

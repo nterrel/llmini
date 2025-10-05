@@ -23,6 +23,10 @@ keywords = ["LLM", "GPT", "TinyGPT", "Deep Learning"]
 development = [
     "pytest>=6.0"
 ]
+wikitext = [
+    "pyarrow>=15.0.0",
+    "tokenizers>=0.15.0"
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

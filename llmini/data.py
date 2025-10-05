@@ -2,11 +2,18 @@
 from pathlib import Path
 import numpy as np
 import torch
-from llmini.scripts.load_wikitext import WikiTextDataset
-from tokenizers import Tokenizer
-from tokenizers.models import BPE
-from tokenizers.trainers import BpeTrainer
-from tokenizers.pre_tokenizers import Whitespace
+
+# Optional tokenizers dependency: provide graceful fallback for environments
+# (like minimal CI) where it isn't installed.
+try:  # pragma: no cover - import guard
+    from tokenizers import Tokenizer
+    from tokenizers.models import BPE
+    from tokenizers.trainers import BpeTrainer
+    from tokenizers.pre_tokenizers import Whitespace
+    _HAS_TOKENIZERS = True
+except Exception:  # broad to catch binary wheels issues
+    _HAS_TOKENIZERS = False
+    Tokenizer = BPE = BpeTrainer = Whitespace = None  # type: ignore
 
 BLOCK_SIZE = 128  # Centralized block size configuration
 
@@ -38,23 +45,26 @@ class CharDataLoader:
         self.block_size = block_size
         self.device = device
 
-        # Initialize the tokenizer
-        self.tokenizer = Tokenizer(BPE())
-        self.tokenizer.pre_tokenizer = Whitespace()
-        trainer = BpeTrainer(
-            special_tokens=["<unk>", "<pad>", "<bos>", "<eos>"])
-
-        # Train the tokenizer
         text = Path(path).read_text(encoding="utf-8")
-        self.tokenizer.train_from_iterator([text], trainer)
-
-        # Extract vocabulary
-        self.stoi = self.tokenizer.get_vocab()
-        self.itos = {idx: token for token, idx in self.stoi.items()}
-        self.vocab_size = len(self.stoi)
-
-        # Tokenize the dataset
-        data = np.array(self.tokenizer.encode(text).ids, dtype=np.int64)
+        if not _HAS_TOKENIZERS:
+            # Fallback: simple character-level vocab if tokenizers missing
+            chars = sorted(list(set(text)))
+            self.stoi = {ch: i for i, ch in enumerate(chars)}
+            self.itos = {i: ch for ch, i in self.stoi.items()}
+            self.vocab_size = len(self.stoi)
+            data = np.array([self.stoi[c] for c in text], dtype=np.int64)
+        elif _HAS_TOKENIZERS and all(sym is not None for sym in (Tokenizer, BPE, BpeTrainer, Whitespace)):
+            # Initialize and train a tiny BPE tokenizer per file
+            self.tokenizer = Tokenizer(BPE())  # type: ignore[arg-type]
+            self.tokenizer.pre_tokenizer = Whitespace()  # type: ignore[assignment]
+            trainer = BpeTrainer(special_tokens=["<unk>", "<pad>", "<bos>", "<eos>"])  # type: ignore[operator]
+            self.tokenizer.train_from_iterator([text], trainer)
+            self.stoi = self.tokenizer.get_vocab()
+            self.itos = {idx: token for token, idx in self.stoi.items()}
+            self.vocab_size = len(self.stoi)
+            data = np.array(self.tokenizer.encode(text).ids, dtype=np.int64)
+        else:
+            raise RuntimeError("Inconsistent tokenizers state; install 'tokenizers' or ensure optional deps are available.")
 
         # Split the data into training and validation sets
         n = int(len(data) * split)
@@ -131,7 +141,13 @@ class WikiTextDataLoader:
         self.block_size = block_size
         self.device = device
 
-        # Load the dataset
+        # Load the dataset lazily to avoid importing pyarrow unless needed
+        try:
+            from llmini.scripts.load_wikitext import WikiTextDataset  # local import
+        except ModuleNotFoundError as e:  # pragma: no cover - environment specific
+            raise ImportError(
+                "WikiTextDataset requires optional dependency 'pyarrow'. Install with 'pip install pyarrow' or skip using the wikitext dataset in tests."  # noqa: E501
+            ) from e
         dataset = WikiTextDataset(path)
         # Tokenize the dataset
         tokens = [token for text in dataset for token in text.split()]
