@@ -64,29 +64,60 @@ def save_checkpoint(checkpoint_path, model, optimizer, scheduler, step, best_val
     print(f"Saved checkpoint at step {step}")
 
 
-def estimate_loss(iters=25, test_mode=False):
-    """
-    Estimate the training and validation loss over a number of iterations.
+def estimate_loss(iters=25, test_mode=False, mdl=None, loader=None, batch_size=None):
+    """Estimate the training and validation loss.
+
+    This function is imported directly in tests before ``__main__`` executes, so
+    the global ``model`` created in the training run may not yet exist. To make
+    it test-friendly we allow passing an explicit ``mdl`` and ``loader``; if they
+    are not provided we fall back to globals, and if those are missing we lazily
+    construct a minimal tiny model + char loader.
 
     Args:
-        iters (int): Number of iterations to average the loss over.
-        test_mode (bool): Whether to use a smaller batch size for testing.
+        iters (int): Number of mini-batches to average.
+        test_mode (bool): Use a smaller batch size to keep tests fast.
+        mdl (nn.Module, optional): Model to evaluate.
+        loader (object, optional): Data loader exposing ``get_batch(split, bs)``.
+        batch_size (int, optional): Override batch size (defaults to config value).
 
     Returns:
-        dict: A dictionary containing the average loss for 'train' and 'val' splits.
+        dict: Average loss for 'train' and 'val'.
     """
-    model.eval()
+    # Resolve model
+    global data_loader  # ensure we can reuse/augment the existing global
+    if mdl is None:
+        if 'model' in globals():  # pragma: no cover - simple branch
+            mdl = globals()['model']
+        else:
+            # Lazy import to avoid circulars
+            from llmini.model import get_model
+            # Build a minimal tiny model for evaluation context
+            vocab_size_local = getattr(data_loader, 'vocab_size', 128)
+            mdl = get_model('tiny', vocab_size_local, BLOCK_SIZE, DEVICE)
+    if loader is None:
+        if 'data_loader' in globals() and data_loader is not None:
+            loader = data_loader
+        else:
+            from llmini.data import CharDataLoader
+            loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+            data_loader = loader
+
+    bs = batch_size or BATCH_SIZE
+    eff_bs = bs if not test_mode else min(8, bs)
+
+    mdl_was_training = mdl.training
+    mdl.eval()
     outs = {}
     with torch.no_grad():
         for split in ["train", "val"]:
             los = 0.0
             for _ in range(iters):
-                xb, yb = data_loader.get_batch(
-                    split, BATCH_SIZE if not test_mode else 8)
-                _, loss = model(xb, yb)
+                xb, yb = loader.get_batch(split, eff_bs)
+                _, loss = mdl(xb, yb)
                 los += loss.item()
-            outs[split] = los / iters
-    model.train()
+            outs[split] = los / max(1, iters)
+    if mdl_was_training:
+        mdl.train()
     return outs
 
 
