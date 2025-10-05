@@ -34,6 +34,10 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=["tiny", "complex"], default="tiny",
                         help="Choose the model architecture: 'tiny' or 'complex'")
+    parser.add_argument("--dataset", choices=["tinyshakespeare", "wikitext"], default="tinyshakespeare",
+                        help="Choose the dataset: 'tinyshakespeare' or 'wikitext'")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints/tinygpt_char.pt",
+                        help="Path to save the model checkpoint.")
     return parser.parse_args()
 
 

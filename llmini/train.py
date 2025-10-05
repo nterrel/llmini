@@ -2,10 +2,12 @@
 import torch
 import math
 from tqdm import trange
-from llmini.data import CharDataLoader
 from llmini.utils import parse_arguments, get_model_from_args
 from llmini.config import BLOCK_SIZE, BATCH_SIZE, STEPS, LEARNING_RATE, DEVICE
 import os
+from llmini.data import CharDataLoader
+from torch.nn.init import xavier_uniform_
+from torch.nn import Dropout
 
 
 def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
@@ -62,64 +64,118 @@ def save_checkpoint(checkpoint_path, model, optimizer, scheduler, step, best_val
     print(f"Saved checkpoint at step {step}")
 
 
-# Initialize data loader
-data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
-vocab_size = data_loader.vocab_size
+def estimate_loss(iters=25, test_mode=False, mdl=None, loader=None, batch_size=None):
+    """Estimate the training and validation loss.
 
-# Parse arguments
-args = parse_arguments()
-
-# Initialize the model
-model = get_model_from_args(args, vocab_size, BLOCK_SIZE, DEVICE)
-
-optimizer = torch.optim.AdamW(
-    model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.95), weight_decay=0.1)
-
-warmup = 200
-min_lr = LEARNING_RATE * 0.1
-patience = 10
-
-scheduler = torch.optim.lr_scheduler.LambdaLR(
-    optimizer,
-    lr_lambda=lambda t: min(
-        1.0,
-        (t + 1) / warmup
-    ) if t < warmup else (
-        min_lr / LEARNING_RATE + (1 - min_lr / LEARNING_RATE) * 0.5 * (1 + math.cos(math.pi * (t - warmup) / max(1, STEPS - warmup))))
-)
-
-
-def estimate_loss(iters=25, test_mode=False):
-    """
-    Estimate the training and validation loss over a number of iterations.
+    This function is imported directly in tests before ``__main__`` executes, so
+    the global ``model`` created in the training run may not yet exist. To make
+    it test-friendly we allow passing an explicit ``mdl`` and ``loader``; if they
+    are not provided we fall back to globals, and if those are missing we lazily
+    construct a minimal tiny model + char loader.
 
     Args:
-        iters (int): Number of iterations to average the loss over.
-        test_mode (bool): Whether to use a smaller batch size for testing.
+        iters (int): Number of mini-batches to average.
+        test_mode (bool): Use a smaller batch size to keep tests fast.
+        mdl (nn.Module, optional): Model to evaluate.
+        loader (object, optional): Data loader exposing ``get_batch(split, bs)``.
+        batch_size (int, optional): Override batch size (defaults to config value).
 
     Returns:
-        dict: A dictionary containing the average loss for 'train' and 'val' splits.
+        dict: Average loss for 'train' and 'val'.
     """
-    model.eval()
+    # Resolve model
+    global data_loader  # ensure we can reuse/augment the existing global
+    if mdl is None:
+        if 'model' in globals():  # pragma: no cover - simple branch
+            mdl = globals()['model']
+        else:
+            # Lazy import to avoid circulars
+            from llmini.model import get_model
+            # Build a minimal tiny model for evaluation context
+            vocab_size_local = getattr(data_loader, 'vocab_size', 128)
+            mdl = get_model('tiny', vocab_size_local, BLOCK_SIZE, DEVICE)
+    if loader is None:
+        if 'data_loader' in globals() and data_loader is not None:
+            loader = data_loader
+        else:
+            from llmini.data import CharDataLoader
+            loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+            data_loader = loader
+
+    bs = batch_size or BATCH_SIZE
+    eff_bs = bs if not test_mode else min(8, bs)
+
+    mdl_was_training = mdl.training
+    mdl.eval()
     outs = {}
     with torch.no_grad():
         for split in ["train", "val"]:
             los = 0.0
             for _ in range(iters):
-                xb, yb = data_loader.get_batch(
-                    split, BATCH_SIZE if not test_mode else 8)
-                _, loss = model(xb, yb)
+                xb, yb = loader.get_batch(split, eff_bs)
+                _, loss = mdl(xb, yb)
                 los += loss.item()
-            outs[split] = los / iters
-    model.train()
+            outs[split] = los / max(1, iters)
+    if mdl_was_training:
+        mdl.train()
     return outs
 
 
-if __name__ == "__main__":
-    checkpoint_path = "checkpoints/tinygpt_char.pt"
-    start_step, best_val_loss, no_improve_steps = load_checkpoint(
-        checkpoint_path, model, optimizer, scheduler)
+# Initialize data loader
+data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+vocab_size = data_loader.vocab_size
 
+
+if __name__ == "__main__":
+    # Parse arguments
+    args = parse_arguments()
+
+    # Initialize the appropriate data loader based on the dataset
+    if args.dataset == "wikitext":
+        from llmini.data import WikiTextDataLoader
+        data_loader = WikiTextDataLoader(
+            path="external/wikitext/wikitext-2-raw-v1/train-00000-of-00001.parquet",
+            block_size=BLOCK_SIZE, device=DEVICE)
+    else:
+        from llmini.data import CharDataLoader
+        data_loader = CharDataLoader(block_size=BLOCK_SIZE, device=DEVICE)
+
+    vocab_size = data_loader.vocab_size
+
+    # Initialize the model
+    model = get_model_from_args(args, vocab_size, BLOCK_SIZE, DEVICE)
+
+    # Apply Xavier initialization
+    for param in model.parameters():
+        if param.dim() > 1:
+            xavier_uniform_(param)
+
+    # Integrate dropout into the model
+    # Ensure the model definition includes dropout layers
+    # Example: Add dropout to the model architecture
+    model.dropout = Dropout(p=0.1)  # Add dropout to the model instance
+
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.95), weight_decay=0.1)
+
+    # Add a learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=STEPS, eta_min=LEARNING_RATE * 0.1)
+
+    # Early stopping parameters
+    patience = 10
+    no_improve_steps = 0
+    best_val_loss = float('inf')
+
+    # Use the --checkpoint argument for the checkpoint path
+    start_step, best_val_loss, no_improve_steps = load_checkpoint(
+        args.checkpoint, model, optimizer, scheduler)
+
+    # Dynamic validation frequency based on dataset size
+    validation_frequency = max(
+        100, len(data_loader.train_data) // (10 * BATCH_SIZE))
+
+    # Ensure 'step' is properly referenced in the checkpoint path logic
     for step in trange(start_step, STEPS):
         xb, yb = data_loader.get_batch("train", BATCH_SIZE)
         _, loss = model(xb, yb)
@@ -129,7 +185,10 @@ if __name__ == "__main__":
         optimizer.step()
         scheduler.step()
 
-        if (step + 1) % 500 == 0:
+        # Update checkpoint path dynamically
+        checkpoint_path = f"checkpoints/complex/complex_model_step_{step + 1}.pt"
+
+        if (step + 1) % validation_frequency == 0:
             losses = estimate_loss(25)
             print(
                 f"step {step+1}: train {losses['train']:.3f} | val {losses['val']:.3f} | lr {scheduler.get_last_lr()[0]:.2e}")
